@@ -13,7 +13,8 @@ import { FcPlus } from "react-icons/fc";
 import { SlRefresh } from "react-icons/sl";
 import { saveAs } from "file-saver";
 import * as XLSX from "xlsx";
-
+const MAX_CASUAL_LEAVES = 6;
+const MAX_SICK_LEAVES = 5;
 const initialLeaves = [
   {
     applicationDate: "2025-04-01",
@@ -62,6 +63,26 @@ const Leaves = ({ theme, toggleTheme }) => {
     reason: true,
   });
   const [showColumnMenu, setShowColumnMenu] = useState(false);
+
+  const approvedLeaves = leaves.filter(
+    (leave) => leave.status.toLowerCase() === "approved"
+  );
+
+  const leavesTaken = approvedLeaves.reduce(
+    (acc, leave) => {
+      const type = leave.leaveType.toLowerCase();
+      if (type.includes("casual")) acc.casual += 1;
+      else if (type.includes("sick")) acc.sick += 1;
+      return acc;
+    },
+    { casual: 0, sick: 0 }
+  );
+
+  const availableLeaves = {
+    casual: Math.max(0, MAX_CASUAL_LEAVES - leavesTaken.casual),
+    sick: Math.max(0, MAX_SICK_LEAVES - leavesTaken.sick),
+    app: Math.max(0, leavesTaken.casual + leavesTaken.sick),
+  };
 
   useEffect(() => {
     const userLeavesOnly = leaves.filter(
@@ -214,6 +235,22 @@ const Leaves = ({ theme, toggleTheme }) => {
 
           {/* Right side buttons */}
           <div className="flex flex-wrap items-center gap-4">
+            <div
+              className={`bg-white rounded shadow p-2 text-sm ${
+                theme === "dark" ? "text-black bg-gray-800" : "text-black"
+              }`}
+            >
+              <p>
+                <strong className="text-gray-600">Available Leaves: </strong>
+                {availableLeaves.casual + availableLeaves.sick}
+              </p>
+            </div>
+            <div className="bg-white rounded shadow p-2 text-sm">
+              <p className="text-gray-600">
+                <strong>Leaves Approved:</strong> {availableLeaves.app}
+              </p>
+            </div>
+
             <div className="relative">
               <button
                 onClick={() => setShowColumnMenu(!showColumnMenu)}
@@ -266,7 +303,7 @@ const Leaves = ({ theme, toggleTheme }) => {
             <button onClick={handleRefresh}>
               <SlRefresh
                 size={22}
-                className={`text-gray-700 hover:text-black ${
+                className={`text-gray-700  ${
                   theme === "dark" ? "text-white" : " text-black"
                 }`}
               />
@@ -275,7 +312,7 @@ const Leaves = ({ theme, toggleTheme }) => {
             <button onClick={exportToExcel}>
               <FaDownload
                 size={22}
-                className={`text-gray-700 hover:text-black ${
+                className={`text-gray-700  ${
                   theme === "dark" ? "text-white" : " text-black"
                 }`}
               />
